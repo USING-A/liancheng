@@ -1,0 +1,101 @@
+# 机械臂正逆运动学参数
+arm_motor_position: 0
+pitch_motor_position: 0
+x_motor_position: 0
+y_motor_position: 0
+
+
+# 机械臂多臂协同辅助参数
+nx1_x_motor_position: 0
+nx1_y_motor_position: 0
+nx1_y_motor_position_mode: 0
+nx1_y_motor_position_next: 0
+
+nx2_x_motor_position: 0
+nx2_y_motor_position: 0
+nx2_y_motor_position_mode: 0
+nx2_y_motor_position_next: 0
+
+nx3_x_motor_position: 0
+nx3_y_motor_position: 0
+nx3_y_motor_position_mode: 0
+nx3_y_motor_position_next: 0
+
+nx4_x_motor_position: 0
+nx4_y_motor_position: 0
+nx4_y_motor_position_mode: 0
+nx4_y_motor_position_next: 0
+
+nx5_x_motor_position: 0
+nx5_y_motor_position: 0
+nx5_y_motor_position_mode: 0
+nx5_y_motor_position_next: 0
+
+nx6_x_motor_position: 0
+nx6_y_motor_position: 0
+nx6_y_motor_position_mode: 0
+nx6_y_motor_position_next: 0
+
+
+# 读取当前机械臂的参数
+nx_id: 3
+read_x_motor_position: 0
+read_y_motor_position: 0
+read_arm_motor_position: 0
+read_pitch_motor_position: 0
+read_arm_motor_speed: 0
+read_pitch_motor_speed: 0
+read_arm_motor_enable_status: 0
+read_pitch_motor_enable_status: 0
+
+
+# 通讯状态参数
+pitch_motor_RS485_status: 0
+arm_motor_RS485_status: 0
+PLC_status: 0
+
+
+# 传给上位机参数
+y_motor_position_mode: 0
+y_motor_position_next: 0
+fruit_number: 0
+nx_mode: 0
+
+
+
+# 客户端、服务端参数
+server_host: 192.168.1.62
+server_port: 5020
+
+
+# 目标检测模型参数
+model_path: /home/liancheng/Desktop/robot/src/SimpleNetwork/scripts/models/best40.engine
+class-names: [ 'apple' ]
+conf-threshold: 0.6
+iou-threshold: 0.7
+box-threshold: [0, 1.5]   # 第一个表示检测框距离图像边缘的距离，小于该值则过滤； 第一个表示检测框长宽比，大于该值则过滤
+
+
+# RealSense深度相机参数
+image_width: 640
+image_height: 480
+realsense_fps: 30
+
+
+# 机械臂行程范围：
+arm_max: 550
+x_max: 800
+y_max: 400
+pitch_max: 5
+pitch_min: -25
+
+
+# 机械臂手眼标定参数 camera2base
+camera2base_1: [[0.002989,0.988177,0.153290,-208.6167],[-0.004909,0.153275,-0.988171,-1.959897],[-0.999983,-0.0037065,-0.004393,70.1895],[0,0,0,1]]
+camera2base_2: [[0.007578,0.989019,0.147595,-197.2416],[0.006262,0.1475498,-0.989035,-1.055102],[-0.999952,0.00841937,-0.005075,70.2303],[0,0,0,1]]
+camera2base_3: [[-0.0038,0.9595,0.2817,-202.3935],[-0.0139,0.2817,-0.9594,-22.3503],[-0.9999,-0.0076,0.0123,68.2806],[0,0,0,1]]
+camera2base_4: [[0.012,0.9897,0.1425,-199.0898],[-0.008,0.1426,-0.9897,5.3472],[-0.9999,0.0108,0.0096,69.5738],[0,0,0,1]]
+camera2base_5: [[-0.0246,0.9942,0.1049,-175.3135],[-0.0088,0.1048,-0.9945,24.7984],[-0.9997,-0.0254,0.0062,73.2170],[0,0,0,1]]
+camera2base_6: [[0.0084,0.9801,0.1983,-217.6690],[0.0112,0.1982,-0.9801,-8.8303],[-0.9999,0.0105,-0.0093,70.7006],[0,0,0,1]]
+
+
