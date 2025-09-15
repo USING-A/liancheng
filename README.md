@@ -1,20 +1,13 @@
 # liancheng
 山东联诚苹果采摘项目相关代码
 
-！！上传修改统一按“年月日-姓名缩写-今日第几次提交”格式发起，eg. 20250915-lc-1
-
 代码网络结构图如下：
 <!-- readme-tree start -->
 ```
 .
-├── .github
-│   └── workflows
-│       └── tree.yml
 ├── README.md
 ├── _
 ├── build
-│   ├── .built_by
-│   ├── .catkin_tools.yaml
 │   ├── catkin_tools_prebuild
 │   │   ├── CATKIN_IGNORE
 │   │   ├── CMakeCache.txt
@@ -76,7 +69,6 @@
 │   │   ├── CTestTestfile.cmake
 │   │   ├── Makefile
 │   │   ├── atomic_configure
-│   │   │   ├── .rosinstall
 │   │   │   ├── _setup_util.py
 │   │   │   ├── env.sh
 │   │   │   ├── local_setup.bash
@@ -93,7 +85,6 @@
 │   │   │   ├── env_cached.sh
 │   │   │   ├── generate_cached_setup.py
 │   │   │   ├── installspace
-│   │   │   │   ├── .rosinstall
 │   │   │   │   ├── _setup_util.py
 │   │   │   │   ├── catkin_tools_prebuild.pc
 │   │   │   │   ├── catkin_tools_prebuildConfig-version.cmake
@@ -633,7 +624,6 @@
 │       ├── CTestTestfile.cmake
 │       ├── Makefile
 │       ├── atomic_configure
-│       │   ├── .rosinstall
 │       │   ├── _setup_util.py
 │       │   ├── env.sh
 │       │   ├── local_setup.bash
@@ -650,7 +640,6 @@
 │       │   ├── env_cached.sh
 │       │   ├── generate_cached_setup.py
 │       │   ├── installspace
-│       │   │   ├── .rosinstall
 │       │   │   ├── _setup_util.py
 │       │   │   ├── env.sh
 │       │   │   ├── liancheng_socket-msg-extras.cmake
@@ -736,101 +725,6 @@
 │               ├── Makefile
 │               └── cmake_install.cmake
 ├── devel
-│   ├── .built_by
-│   ├── .catkin
-│   ├── .private
-│   │   ├── catkin_tools_prebuild
-│   │   │   ├── .catkin
-│   │   │   ├── .rosinstall
-│   │   │   ├── _setup_util.py
-│   │   │   ├── cmake.lock
-│   │   │   ├── env.sh
-│   │   │   ├── lib
-│   │   │   │   └── pkgconfig
-│   │   │   │       └── catkin_tools_prebuild.pc
-│   │   │   ├── local_setup.bash
-│   │   │   ├── local_setup.sh
-│   │   │   ├── local_setup.zsh
-│   │   │   ├── setup.bash
-│   │   │   ├── setup.sh
-│   │   │   ├── setup.zsh
-│   │   │   └── share
-│   │   │       └── catkin_tools_prebuild
-│   │   │           └── cmake
-│   │   │               ├── catkin_tools_prebuildConfig-version.cmake
-│   │   │               └── catkin_tools_prebuildConfig.cmake
-│   │   └── liancheng_socket
-│   │       ├── .catkin
-│   │       ├── .rosinstall
-│   │       ├── _setup_util.py
-│   │       ├── cmake.lock
-│   │       ├── env.sh
-│   │       ├── include
-│   │       │   └── liancheng_socket
-│   │       │       ├── MotorOrder.h
-│   │       │       ├── ReadOutput.h
-│   │       │       └── SwitchOrder.h
-│   │       ├── lib
-│   │       │   ├── liancheng_socket
-│   │       │   │   ├── liancheng_can
-│   │       │   │   ├── liancheng_client
-│   │       │   │   ├── liancheng_plc
-│   │       │   │   ├── liancheng_serial
-│   │       │   │   ├── liancheng_server
-│   │       │   │   └── talk_test
-│   │       │   ├── pkgconfig
-│   │       │   │   └── liancheng_socket.pc
-│   │       │   └── python3
-│   │       │       └── dist-packages
-│   │       │           └── liancheng_socket
-│   │       │               ├── __init__.py
-│   │       │               └── msg
-│   │       │                   ├── _MotorOrder.py
-│   │       │                   ├── _ReadOutput.py
-│   │       │                   ├── _SwitchOrder.py
-│   │       │                   └── __init__.py
-│   │       ├── local_setup.bash
-│   │       ├── local_setup.sh
-│   │       ├── local_setup.zsh
-│   │       ├── setup.bash
-│   │       ├── setup.sh
-│   │       ├── setup.zsh
-│   │       └── share
-│   │           ├── common-lisp
-│   │           │   └── ros
-│   │           │       └── liancheng_socket
-│   │           │           └── msg
-│   │           │               ├── MotorOrder.lisp
-│   │           │               ├── ReadOutput.lisp
-│   │           │               ├── SwitchOrder.lisp
-│   │           │               ├── _package.lisp
-│   │           │               ├── _package_MotorOrder.lisp
-│   │           │               ├── _package_ReadOutput.lisp
-│   │           │               ├── _package_SwitchOrder.lisp
-│   │           │               └── liancheng_socket-msg.asd
-│   │           ├── gennodejs
-│   │           │   └── ros
-│   │           │       └── liancheng_socket
-│   │           │           ├── _index.js
-│   │           │           └── msg
-│   │           │               ├── MotorOrder.js
-│   │           │               ├── ReadOutput.js
-│   │           │               ├── SwitchOrder.js
-│   │           │               └── _index.js
-│   │           ├── liancheng_socket
-│   │           │   └── cmake
-│   │           │       ├── liancheng_socket-msg-extras.cmake
-│   │           │       ├── liancheng_socket-msg-paths.cmake
-│   │           │       ├── liancheng_socketConfig-version.cmake
-│   │           │       └── liancheng_socketConfig.cmake
-│   │           └── roseus
-│   │               └── ros
-│   │                   └── liancheng_socket
-│   │                       ├── manifest.l
-│   │                       └── msg
-│   │                           ├── MotorOrder.l
-│   │                           ├── ReadOutput.l
-│   │                           └── SwitchOrder.l
 │   ├── _setup_util.py
 │   ├── cmake.lock
 │   ├── env.sh
@@ -1007,6 +901,6 @@
 ├── test.sh
 └── tree.bak
 
-197 directories, 803 files
+163 directories, 733 files
 ```
 <!-- readme-tree end -->
