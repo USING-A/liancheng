@@ -1,6 +1,0 @@
-devel_space: /home/liancheng/Desktop/robot/devel
-install: false
-install_space: /home/liancheng/Desktop/robot/install
-profile: default
-source_space: /home/liancheng/Desktop/robot/src
-workspace: /home/liancheng/Desktop/robot
