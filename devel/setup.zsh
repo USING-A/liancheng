@@ -1,1 +1,0 @@
-/home/liancheng/Desktop/robot/devel/.private/catkin_tools_prebuild/setup.zsh

@@ -1,1 +1,0 @@
-/home/liancheng/Desktop/robot/devel/.private/liancheng_socket/share/gennodejs/ros/liancheng_socket/msg/_index.js

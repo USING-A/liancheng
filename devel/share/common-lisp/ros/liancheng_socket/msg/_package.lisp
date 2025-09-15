@@ -1,1 +1,0 @@
-/home/liancheng/Desktop/robot/devel/.private/liancheng_socket/share/common-lisp/ros/liancheng_socket/msg/_package.lisp
