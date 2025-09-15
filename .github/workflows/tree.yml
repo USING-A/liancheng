@@ -10,6 +10,7 @@ jobs:
         uses: RavelloH/readme-tree@latest
         with:
           showall: 'no'
+          showdirectoryname: 'yes'
       - name: commit
         continue-on-error: True
         run: |
