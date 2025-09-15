@@ -1,0 +1,1 @@
+/home/liancheng/Desktop/robot/devel/.private/liancheng_socket/share/roseus/ros/liancheng_socket/manifest.l
