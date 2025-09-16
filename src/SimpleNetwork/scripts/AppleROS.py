@@ -1,9 +1,5 @@
 #!/home/archiconda3/envs/apple/bin/python3.8
 # -*- coding: utf-8 -*-
-"""
-AUTHOR: Luo Hefei
-Copyright (C) 2023, Luo Hefei. All right reserved.
-"""
 
 import cv2
 import rospy
@@ -20,29 +16,56 @@ from utils.RobotMovement import LianChengRobot
 from liancheng_socket.msg import MotorOrder, SwitchOrder
 from utils.PickSequence import sort_sequence
 
+from sklearn.cluster import DBSCAN
+from scipy.ndimage import gaussian_filter
 
-def get_mid_pos(aligned_depth_frame, mid_pixel):
-    [x, y] = map(int, mid_pixel)
+
+def get_mid_pos(aligned_depth_frame, x1, y1, x2, y2):
+    x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])
     # Approch the depth intrinsics of the camera
     depth_intrin = aligned_depth_frame.profile.as_video_stream_profile().intrinsics
     # Get the depth of the pixel, unit: m
     # Get the coordinate of the pixel in the camera coordinate
     points = []
-    for i in range(5):
-        for j in range(5):
-            if aligned_depth_frame.get_distance(x + i - 2, y + j - 2) != 0:
-                dis = aligned_depth_frame.get_distance(x + i - 2, y + j - 2)
-                camera_coordinate = rs.rs2_deproject_pixel_to_point(depth_intrin, [x + i - 2, y + j - 2], dis)
-                camera_coordinate = [int(i * 1000) for i in camera_coordinate]
-                
+    for y in range(y1, y2 + 1):
+        for x in range(x1, x2 + 1):
+            if aligned_depth_frame.get_distance(x, y) != 0:
+                dis = aligned_depth_frame.get_distance(x, y)
+                camera_coordinate = rs.rs2_deproject_pixel_to_point(depth_intrin, [x, y], dis)
+                camera_coordinate = [int(coord * 1000) for coord in camera_coordinate]
                 points.append(camera_coordinate)
+    
     if not points:
         print("未检测到有效点云数据")
         return None
             
     pointcloud = np.array(points)
-    average_point = np.mean(pointcloud, axis=0)
+    # 1. 应用高斯滤波平滑点云数据
+    smoothed_x = gaussian_filter(pointcloud[:, 0], sigma=1)
+    smoothed_y = gaussian_filter(pointcloud[:, 1], sigma=1)
+    smoothed_z = gaussian_filter(pointcloud[:, 2], sigma=1)
+    smoothed_cloud = np.column_stack((smoothed_x, smoothed_y, smoothed_z))
     
+    # 2. DBSCAN聚类
+    dbscan = DBSCAN(eps=50, min_samples=3)  # 可调整参数
+    clusters = dbscan.fit_predict(smoothed_cloud)
+    
+    # 检查是否有有效聚类（排除仅含噪声的情况）
+    if len(np.unique(clusters)) <= 1:
+        print("未检测到有效聚类")
+        return None
+    
+    # 计算每个聚类的大小（排除噪声点）
+    cluster_sizes = np.bincount(clusters[clusters != -1])
+    largest_cluster_id = np.argmax(cluster_sizes)
+    
+    # 获取最大聚类的点
+    largest_cluster_points = smoothed_cloud[clusters == largest_cluster_id]
+    
+    # 计算最大聚类的平均点
+    average_point = np.mean(largest_cluster_points, axis=0)
+    
+    # 返回平均点
     if average_point[2] != 0:
         return average_point
     else:
@@ -85,8 +108,8 @@ def boxes_filter(coords, confidences, depth_frame, threshold):
             pass
         else:
             if max([w / h, h / w]) <= ratio:
-                center = [x1 + w / 2, y1 + h / 2]
-                point = get_mid_pos(depth_frame, center)
+                # center = [x1 + w / 2, y1 + h / 2]
+                point = get_mid_pos(depth_frame, x1, y1, x2, y2)
                 result.append([x1, y1, w, h, score, point])
     return result
 
