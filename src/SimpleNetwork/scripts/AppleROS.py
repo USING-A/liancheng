@@ -76,15 +76,15 @@ def get_mid_pos(aligned_depth_frame, x1, y1, x2, y2):
     cx = (x1 + x2) // 2
     cy = (y1 + y2) // 2
     
-    # 定义20×20区域（中心±10像素）并限制在图像内
+    # 定义50×50区域（中心±25像素）并限制在图像内
     width = aligned_depth_frame.get_width()
     height = aligned_depth_frame.get_height()
-    x_start = max(0, cx - 10)
-    x_end = min(width - 1, cx + 9)
-    y_start = max(0, cy - 10)
-    y_end = min(height - 1, cy + 9)
+    x_start = max(0, cx - 25)
+    x_end = min(width - 1, cx + 24)
+    y_start = max(0, cy - 25)
+    y_end = min(height - 1, cy + 24)
     
-    # 收集20×20区域内的有效深度点（单位：毫米）
+    # 收集50×50区域内的有效深度点（单位：毫米）
     points = []
     for y in range(y_start, y_end + 1):
         for x in range(x_start, x_end + 1):
@@ -94,7 +94,7 @@ def get_mid_pos(aligned_depth_frame, x1, y1, x2, y2):
                 points.append([int(c * 1000) for c in coord])  # 转换为毫米
     
     if not points:
-        print("20×20区域内无有效深度数据")
+        print("50×50区域内无有效深度数据")
         return None
     
     pointcloud = np.array(points)
