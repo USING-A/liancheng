@@ -16,61 +16,112 @@ from utils.RobotMovement import LianChengRobot
 from liancheng_socket.msg import MotorOrder, SwitchOrder
 from utils.PickSequence import sort_sequence
 
-from sklearn.cluster import DBSCAN
+from scipy.spatial import KDTree
 from scipy.ndimage import gaussian_filter
+
+
+def voxel_downsample(pointcloud, voxel_size=5):
+    """
+    :param pointcloud: 输入点云(numpy数组，shape=(N,3))
+    :param voxel_size: 体素大小(毫米)
+    :return: 下采样后的点云
+    """
+    if len(pointcloud) == 0:
+        return np.array([])
+    
+    # 计算每个点所属的体素索引
+    voxel_indices = np.floor(pointcloud / voxel_size).astype(int)
+    
+    # 按体素分组，计算每个体素的平均点
+    unique_voxels, voxel_counts = np.unique(voxel_indices, axis=0, return_counts=True)
+    downsampled = []
+    for voxel in unique_voxels:
+        mask = np.all(voxel_indices == voxel, axis=1)
+        voxel_points = pointcloud[mask]
+        downsampled.append(np.mean(voxel_points, axis=0))  # 体素内取平均
+    
+    return np.array(downsampled)
+
+
+def statistical_outlier_removal(pointcloud, k=8, std_ratio=1.0):
+    """
+    :param pointcloud: 输入点云(numpy数组，shape=(N,3))
+    :param k: 邻域点数量
+    :param std_ratio: 标准差倍数阈值
+    :return: 去除离群点后的点云
+    """
+    if len(pointcloud) <= k:
+        return pointcloud  # 点数量不足时直接返回
+    
+    # 构建KDTree计算最近邻
+    tree = KDTree(pointcloud)
+    distances, _ = tree.query(pointcloud, k=k+1)  # 第0个是自身，取k+1个后排除自身
+    mean_distances = np.mean(distances[:, 1:], axis=1)  # 计算每个点到k个邻域的平均距离
+    
+    # 计算距离的均值和标准差，确定阈值
+    mean = np.mean(mean_distances)
+    std = np.std(mean_distances)
+    threshold = mean + std_ratio * std
+    
+    # 保留平均距离小于阈值的点
+    inliers = pointcloud[mean_distances < threshold]
+    return inliers
 
 
 def get_mid_pos(aligned_depth_frame, x1, y1, x2, y2):
     x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])
-    # Approch the depth intrinsics of the camera
     depth_intrin = aligned_depth_frame.profile.as_video_stream_profile().intrinsics
-    # Get the depth of the pixel, unit: m
-    # Get the coordinate of the pixel in the camera coordinate
+    
+    # 计算锚框中心点
+    cx = (x1 + x2) // 2
+    cy = (y1 + y2) // 2
+    
+    # 定义20×20区域（中心±10像素）并限制在图像内
+    width = aligned_depth_frame.get_width()
+    height = aligned_depth_frame.get_height()
+    x_start = max(0, cx - 10)
+    x_end = min(width - 1, cx + 9)
+    y_start = max(0, cy - 10)
+    y_end = min(height - 1, cy + 9)
+    
+    # 收集20×20区域内的有效深度点（单位：毫米）
     points = []
-    for y in range(y1, y2 + 1):
-        for x in range(x1, x2 + 1):
-            if aligned_depth_frame.get_distance(x, y) != 0:
-                dis = aligned_depth_frame.get_distance(x, y)
-                camera_coordinate = rs.rs2_deproject_pixel_to_point(depth_intrin, [x, y], dis)
-                camera_coordinate = [int(coord * 1000) for coord in camera_coordinate]
-                points.append(camera_coordinate)
+    for y in range(y_start, y_end + 1):
+        for x in range(x_start, x_end + 1):
+            dis = aligned_depth_frame.get_distance(x, y)  # 米
+            if dis != 0:
+                coord = rs.rs2_deproject_pixel_to_point(depth_intrin, [x, y], dis)
+                points.append([int(c * 1000) for c in coord])  # 转换为毫米
     
     if not points:
-        print("未检测到有效点云数据")
+        print("20×20区域内无有效深度数据")
         return None
-            
+    
     pointcloud = np.array(points)
-    # 1. 应用高斯滤波平滑点云数据
-    smoothed_x = gaussian_filter(pointcloud[:, 0], sigma=1)
-    smoothed_y = gaussian_filter(pointcloud[:, 1], sigma=1)
-    smoothed_z = gaussian_filter(pointcloud[:, 2], sigma=1)
-    smoothed_cloud = np.column_stack((smoothed_x, smoothed_y, smoothed_z))
     
-    # 2. DBSCAN聚类
-    dbscan = DBSCAN(eps=50, min_samples=3)  # 可调整参数
-    clusters = dbscan.fit_predict(smoothed_cloud)
-    
-    # 检查是否有有效聚类（排除仅含噪声的情况）
-    if len(np.unique(clusters)) <= 1:
-        print("未检测到有效聚类")
+    # 1. 体素下采样：减少点数量，保留结构
+    downsampled = voxel_downsample(pointcloud, voxel_size=5)
+    if len(downsampled) == 0:
+        print("体素下采样后无有效点")
         return None
     
-    # 计算每个聚类的大小（排除噪声点）
-    cluster_sizes = np.bincount(clusters[clusters != -1])
-    largest_cluster_id = np.argmax(cluster_sizes)
-    
-    # 获取最大聚类的点
-    largest_cluster_points = smoothed_cloud[clusters == largest_cluster_id]
-    
-    # 计算最大聚类的平均点
-    average_point = np.mean(largest_cluster_points, axis=0)
-    
-    # 返回平均点
-    if average_point[2] != 0:
-        return average_point
-    else:
+    # 2. 统计离群点去除：剔除噪声点
+    filtered = statistical_outlier_removal(downsampled, k=8, std_ratio=1.0)
+    if len(filtered) == 0:
+        print("离群点去除后无有效点")
         return None
     
+    # 3. 平滑处理：高斯滤波减少局部波动
+    smoothed_x = gaussian_filter(filtered[:, 0], sigma=1)
+    smoothed_y = gaussian_filter(filtered[:, 1], sigma=1)
+    smoothed_z = gaussian_filter(filtered[:, 2], sigma=1)
+    smoothed = np.column_stack((smoothed_x, smoothed_y, smoothed_z))
+    
+    # 计算预处理后的平均点
+    average_point = np.mean(smoothed, axis=0)
+    
+    return average_point if average_point[2] != 0 else None
+
     
 def draw_detections(img, objects, class_name, color = (255, 0, 0)):
     for info in objects:
