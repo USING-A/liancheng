@@ -127,12 +127,14 @@ def draw_detections(img, objects, class_name, color = (255, 0, 0)):
     for info in objects:
         box = info[:4]
         score = info[4]
+        depth = info[5][2]
         # Extract the coordinates of the bounding box
         x1, y1, w, h = box
         # Draw the bounding box on the image
         cv2.rectangle(img, (int(x1), int(y1)), (int(x1 + w), int(y1 + h)), color, 2)
         # Create the label text with class name and score
-        label = f'{class_name}: {score:.2f}'
+        # {class_name}: 
+        label = f'{score:.2f},{depth:.4f}'
         # Calculate the dimensions of the label text
         (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         # Calculate the position of the label text
@@ -235,6 +237,14 @@ if __name__ == "__main__":
     config = rs.config()
     config.enable_stream(rs.stream.depth, image_width, image_height, rs.format.z16, fps)
     config.enable_stream(rs.stream.color, image_width, image_height, rs.format.bgr8, fps)
+    
+    decimation = rs.decimation_filter()
+    spatial = rs.spatial_filter()
+    temporal = rs.temporal_filter()
+    hole_filling = rs.hole_filling_filter()
+    depth_to_disparity = rs.disparity_transform(True)
+    disparity_to_depth = rs.disparity_transform(False)
+
     try:
         profile = pipeline.start(config)
     except Exception as e:
@@ -247,11 +257,36 @@ if __name__ == "__main__":
     # Start the detecting process
     while not rospy.is_shutdown():
         rospy.sleep(0.01)
+        
+        # Align all sensors frame to color frame
+        frames = []
+        for x in range(5):
+            frameset = pipeline.wait_for_frames()
+            frameset = align.process(frameset)
+            color_frame = frameset.get_color_frame()
+            depth_frame = frameset.get_depth_frame()
+            frames.append(depth_frame)
+        for x in range(5):
+            frame = frames[x]
+            # 降采样滤波器，卷积核[2x2] to [8x8] pixels，采用核内深度中值作为当前值，会降低分辨率
+            # frame = decimation.process(frame)
+            frame = depth_to_disparity.process(frame)
+            # 空间滤波器，保证边缘信息对深度值进行平滑
+            frame = spatial.process(frame)
+            # 时间滤波器，利用不同时间帧图像融合
+            frame = temporal.process(frame)
+            frame = disparity_to_depth.process(frame)
+            # frame = hole_filling.process(frame)
+
+        # Validate that both frames are valid
+        if not frame or not color_frame:
+            continue
+
         # Loading images
-        frames = pipeline.wait_for_frames()
-        aligned_frames = align.process(frames)
-        depth_frame = aligned_frames.get_depth_frame()
-        color_frame = aligned_frames.get_color_frame()
+        # frames = pipeline.wait_for_frames()
+        # aligned_frames = align.process(frames)
+        # depth_frame = aligned_frames.get_depth_frame()
+        # color_frame = aligned_frames.get_color_frame()
         color_image = np.array(color_frame.get_data(), dtype=np.uint8)
 
         # Perform object detection, apples harvesting and obtain the output image

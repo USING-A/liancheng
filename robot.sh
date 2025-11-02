@@ -2,7 +2,7 @@
 
 sudo gnome-terminal --title="roscore" -- bash -c "source /opt/ros/noetic/setup.bash; roscore; exec bash"
 
-sleep 5s
+sleep 10s
 
 sudo chmod 777 /dev/ttyUSB0 /dev/ttyUSB1
 
@@ -33,13 +33,27 @@ sleep 3s
 
 # sleep 2s
 
-sudo gnome-terminal --title="RobotPicking" -- bash -c "conda activate apple; cd Desktop/robot/; source devel/setup.bash; rosrun liancheng_socket AppleROS.py; exec bash"
+sudo gnome-terminal --title="RobotPicking" -- bash -c "sudo su -c '
+    cd /home/archiconda3/bin/;
+    source activate;
+    conda activate apple;
+    cd /home/liancheng/Desktop/robot/;
+    source devel/setup.bash;
+    python3 /home/liancheng/Desktop/robot/src/SimpleNetwork/scripts/AppleROS.py;'
+exec bash"
 
 echo "Picking programme successfully started"
 
 sleep 2s
 
-sudo gnome-terminal --title="NXServer" -- bash -c "conda activate apple; cd Desktop/robot/; source devel/setup.bash; rosrun liancheng_socket NXServer.py; exec bash"
+sudo gnome-terminal --title="NXServer" -- bash -c "sudo su -c '
+    cd /home/archiconda3/bin/;
+    source activate;
+    conda activate apple;
+    cd /home/liancheng/Desktop/robot/;
+    source devel/setup.bash;
+    python /home/liancheng/Desktop/robot/src/SimpleNetwork/scripts/NXServer.py;'
+exec bash"
 
 echo "NXServer successfully started"
 
