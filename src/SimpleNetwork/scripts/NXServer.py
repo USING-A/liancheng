@@ -17,8 +17,9 @@ class NXServer:
     def __init__(self, ip="localhost", port_number=7070):
         self.socket_connection = socket(AF_INET, SOCK_STREAM)
         self.socket_connection.settimeout(10)
-        self.socket_connection.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        self.socket_connection.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # 允许端口复用，避免"Address already in use"错误
         self.socket_connection.setblocking(True)
+        self.active_connections = []  # 新增：用于追踪所有活动的客户端连接
         # print(ip)
         # print(port_number)
         self.socket_connection.bind((ip, port_number))
@@ -27,6 +28,7 @@ class NXServer:
     def accept_connections(self):
         try:
             connection, client_address = self.socket_connection.accept()
+            self.active_connections.append(connection)  # 新增：将新连接添加到活动连接列表
             rospy.loginfo("IP: %s\t端口: %s 已连接！", client_address[0], client_address[1])
             return connection, client_address
         except timeout:
@@ -38,12 +40,29 @@ class NXServer:
         # finally:
         #     self.close_server()
 
+    def close_all_connections(self):
+        """新增：关闭所有活动的客户端连接"""
+        for conn in self.active_connections:
+            try:
+                conn.shutdown(SHUT_RDWR)  # 终止双向通信
+                conn.close()
+            except Exception as e:
+                rospy.logwarn(f"关闭连接时出现警告: {e}")
+        self.active_connections.clear()  # 清空连接列表
+
     def close_server(self):
+        """修改：先关闭所有客户端连接，再关闭服务器socket"""
+        self.close_all_connections()  # 新增：先关闭所有客户端连接
+        try:
+            self.socket_connection.shutdown(SHUT_RDWR)  # 新增：关闭服务器socket
+        except Exception:
+            pass  # 如果socket已经关闭，忽略异常
         self.socket_connection.close()
+        rospy.loginfo("服务器已关闭所有连接")  # 新增：日志输出
 
 
 class ConnectionHandler:
-    def __init__(self, connection, client_address, pub):
+    def __init__(self, connection, client_address, pub, server):  # 修改：添加server参数
         self.connection = connection
         self.client_address = client_address
         self.end = "\r\n"
@@ -53,9 +72,18 @@ class ConnectionHandler:
         self.time_length = 0
         self.image = None
         self.pub_rs485 = pub
+        self.server = server  # 新增：保存server引用，用于管理连接列表
         
     def close(self):
+        """修改：关闭连接并从服务器的连接列表中移除"""
+        try:
+            self.connection.shutdown(SHUT_RDWR)  # 新增：先终止双向通信
+        except Exception:
+            pass  # 如果连接已断开，忽略异常
         self.connection.close()
+        # 新增：从服务器的活动连接列表中移除此连接
+        if self.connection in self.server.active_connections:
+            self.server.active_connections.remove(self.connection)
         rospy.loginfo("IP: %s\t端口: %s 已断开连接！", self.client_address[0], self.client_address[1])
 
     def send_data(self, data):
@@ -154,14 +182,12 @@ class ConnectionHandler:
                 nx_mode = int(rospy.get_param("/nx_mode"))  # nx工作状态   3=当前车位置点采摘结束  2=采摘暂停   1=正在采摘   0=静默状态
                 y_motor_position_mode = int(rospy.get_param("/y_motor_position_mode"))  # 当前Y轴位置下采摘状态  1=采摘完成    0=采摘未完成
                 y_motor_position_next = float(rospy.get_param("/y_motor_position_next"))  # 当前Y轴位置采摘结束后，接下来采摘时的Y轴位置
-
-                # 待添加
                 pitch_motor_RS485_status = int(rospy.get_param("/pitch_motor_RS485_status"))  # NX与俯仰电机通讯状态  1=在线 0=离线
                 arm_motor_RS485_status = int(rospy.get_param("/arm_motor_RS485_status"))  # NX与伸缩电机通讯状态  1=在线 0=离线
                 PLC_status = int(rospy.get_param("/PLC_status"))  # NX与PLC通讯状态  1=在线 0=离线
 
-                self.send_data(f"{pitch_position},{flex_position},{pitch_speed},{flex_speed},{pitch_motor},{flex_motor},{apple_num},{nx_mode},{y_motor_position_mode},{y_motor_position_next}")
-                rospy.loginfo("\t接受到客户端指令: %s\t发送参数列表: %s！", data, f"{pitch_position},{flex_position},{pitch_speed},{flex_speed},{pitch_motor},{flex_motor},{apple_num},{nx_mode},{y_motor_position_mode},{y_motor_position_next}")
+                self.send_data(f"{pitch_position},{flex_position},{pitch_speed},{flex_speed},{pitch_motor},{flex_motor},{apple_num},{nx_mode},{y_motor_position_mode},{y_motor_position_next}，{pitch_motor_RS485_status},{arm_motor_RS485_status},{PLC_status}")
+                rospy.loginfo("\t接受到客户端指令: %s\t发送参数列表: %s！", data, f"{pitch_position},{flex_position},{pitch_speed},{flex_speed},{pitch_motor},{flex_motor},{apple_num},{nx_mode},{y_motor_position_mode},{y_motor_position_next},{pitch_motor_RS485_status},{arm_motor_RS485_status},{PLC_status}")
                 data_list = data.split(":")[1].split(",")
                 rospy.set_param("/nx1_x_motor_position", float(data_list[0]))
                 rospy.set_param("/nx1_y_motor_position", float(data_list[1]))
@@ -240,8 +266,9 @@ class ConnectionHandler:
             rospy.logerr(f"解析指令时出现错误: {e}！")
 
 
-def connect_new_client(connection, client_address,pub):
-    handler = ConnectionHandler(connection, client_address,pub)
+def connect_new_client(connection, client_address, pub, server):  # 修改：添加server参数
+    """处理单个客户端连接的线程函数"""
+    handler = ConnectionHandler(connection, client_address, pub, server)  # 修改：传递server参数
     while True:
         if not handler.connection_status:
             handler.receive_order()
@@ -251,6 +278,7 @@ def connect_new_client(connection, client_address,pub):
 
 
 def cv2_callback(data):
+    """ROS图像订阅回调函数"""
     global image_stream
     try:
         byte_data = np.frombuffer(data.data, np.uint8)
@@ -268,15 +296,20 @@ if __name__ == "__main__":
     pub_rs485 = rospy.Publisher('/Controller_motor_order', MotorOrder, queue_size=6)
     rate = rospy.Rate(1.0)
 
-    while not rospy.is_shutdown():
-        try:
-            connection, client_address = server.accept_connections()
-            if not (connection is None):
-                client_thread = threading.Thread(target=connect_new_client, args=(connection, client_address,pub_rs485))
-                client_thread.setDaemon(True)
-                client_thread.start()
-        except Exception as e:
-            rospy.loginfo("客户端连接中断！！！")
-        rate.sleep()
-    
-    server.close_server()
+    try:  # 新增：添加try-except-finally块确保资源正确释放
+        while not rospy.is_shutdown():
+            try:
+                connection, client_address = server.accept_connections()
+                if not (connection is None):
+                    # 修改：传递server参数给线程函数
+                    client_thread = threading.Thread(target=connect_new_client, args=(connection, client_address, pub_rs485, server))
+                    client_thread.setDaemon(True)
+                    client_thread.start()
+            except Exception as e:
+                rospy.loginfo("客户端连接中断！！！")
+            rate.sleep()
+    except KeyboardInterrupt:  # 新增：捕获Ctrl+C中断信号
+        rospy.loginfo("收到中断信号，正在关闭服务器...")
+    finally:  # 新增：确保无论如何退出都会清理资源
+        server.close_server()  # 关闭所有连接和服务器socket
+        rospy.loginfo("程序已安全退出")
