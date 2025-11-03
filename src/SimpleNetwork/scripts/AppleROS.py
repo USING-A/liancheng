@@ -260,13 +260,13 @@ if __name__ == "__main__":
         
         # Align all sensors frame to color frame
         frames = []
-        for x in range(5):
+        for x in range(1):
             frameset = pipeline.wait_for_frames()
             frameset = align.process(frameset)
             color_frame = frameset.get_color_frame()
             depth_frame = frameset.get_depth_frame()
             frames.append(depth_frame)
-        for x in range(5):
+        for x in range(1):
             frame = frames[x]
             # 降采样滤波器，卷积核[2x2] to [8x8] pixels，采用核内深度中值作为当前值，会降低分辨率
             # frame = decimation.process(frame)
@@ -274,8 +274,8 @@ if __name__ == "__main__":
             # 空间滤波器，保证边缘信息对深度值进行平滑
             frame = spatial.process(frame)
             # 时间滤波器，利用不同时间帧图像融合
-            frame = temporal.process(frame)
-            frame = disparity_to_depth.process(frame)
+            # frame = temporal.process(frame)
+            # frame = disparity_to_depth.process(frame)
             # frame = hole_filling.process(frame)
 
         # Validate that both frames are valid
