@@ -186,7 +186,7 @@ class ConnectionHandler:
                 arm_motor_RS485_status = int(rospy.get_param("/arm_motor_RS485_status"))  # NX与伸缩电机通讯状态  1=在线 0=离线
                 PLC_status = int(rospy.get_param("/PLC_status"))  # NX与PLC通讯状态  1=在线 0=离线
 
-                self.send_data(f"{pitch_position},{flex_position},{pitch_speed},{flex_speed},{pitch_motor},{flex_motor},{apple_num},{nx_mode},{y_motor_position_mode},{y_motor_position_next}，{pitch_motor_RS485_status},{arm_motor_RS485_status},{PLC_status}")
+                self.send_data(f"{pitch_position},{flex_position},{pitch_speed},{flex_speed},{pitch_motor},{flex_motor},{apple_num},{nx_mode},{y_motor_position_mode},{y_motor_position_next},{pitch_motor_RS485_status},{arm_motor_RS485_status},{PLC_status}")
                 rospy.loginfo("\t接受到客户端指令: %s\t发送参数列表: %s！", data, f"{pitch_position},{flex_position},{pitch_speed},{flex_speed},{pitch_motor},{flex_motor},{apple_num},{nx_mode},{y_motor_position_mode},{y_motor_position_next},{pitch_motor_RS485_status},{arm_motor_RS485_status},{PLC_status}")
                 data_list = data.split(":")[1].split(",")
                 rospy.set_param("/nx1_x_motor_position", float(data_list[0]))
