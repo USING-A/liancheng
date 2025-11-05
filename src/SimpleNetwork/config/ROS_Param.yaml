@@ -69,7 +69,7 @@ server_port: 5020
 
 
 # 目标检测模型参数
-model_path: /home/liancheng/Desktop/robot/src/SimpleNetwork/scripts/models/best40.engine
+model_path: /home/liancheng/Desktop/robot/src/SimpleNetwork/scripts/models/yolov10n_1101.engine
 class-names: [ 'apple' ]
 conf-threshold: 0.4
 iou-threshold: 0.4

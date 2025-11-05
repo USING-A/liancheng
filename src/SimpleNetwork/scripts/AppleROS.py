@@ -127,14 +127,17 @@ def draw_detections(img, objects, class_name, color = (255, 0, 0)):
     for info in objects:
         box = info[:4]
         score = info[4]
-        depth = info[5][2]
+        if info[5] is None:
+            depth = -1.00
+        else:
+            depth = info[5][2]
         # Extract the coordinates of the bounding box
         x1, y1, w, h = box
         # Draw the bounding box on the image
         cv2.rectangle(img, (int(x1), int(y1)), (int(x1 + w), int(y1 + h)), color, 2)
         # Create the label text with class name and score
         # {class_name}: 
-        label = f'{score:.2f},{depth:.4f}'
+        label = f'{score:.2f},{depth:.2f}'
         # Calculate the dimensions of the label text
         (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         # Calculate the position of the label text
@@ -157,13 +160,16 @@ def boxes_filter(coords, confidences, depth_frame, threshold):
         h = y2 - y1
         width = rosparam.get_param('/image_width')
         height = rosparam.get_param('/image_height')
+        arm_max = rosparam.get_param('/arm_max')
         if x1 < margin or y1 < margin or width - x2 < margin or height - y2 < margin:
             pass
         else:
             if max([w / h, h / w]) <= ratio:
                 # center = [x1 + w / 2, y1 + h / 2]
                 point = get_mid_pos(depth_frame, x1, y1, x2, y2)
-                result.append([x1, y1, w, h, score, point])
+                if point is not None:
+                    if point[2] <= arm_max:
+                        result.append([x1, y1, w, h, score, point])
     return result
 
 
@@ -196,11 +202,11 @@ def y_pos_judge(id):
 
     # 向下为正，y1，y2，y3下层分别为150，-138，-10，给30mm的余量
     # y1:(120, 180), y2:(-168, -108), y3:(-40, 20)
-    if (id ==1 or id ==2) and (y_position < 180 or y_position > 120):
+    if (id ==1 or id ==2) and (y_position < 180 and y_position > 120):
         return 1
-    elif (id == 3 or id == 4) and (y_position < -108 or y_position > -168):
+    elif (id == 3 or id == 4) and (y_position < -108 and y_position > -168):
         return 1
-    elif (id == 5 or id == 6) and (y_position < 20 or y_position > -40):
+    elif (id == 5 or id == 6) and (y_position < 20 and y_position > -40):
         return 1
     else:
         return 0
